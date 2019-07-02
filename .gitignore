@@ -12,10 +12,7 @@
 *.out
 
 
-
-
-
-
-
 /vendor
 .idea
+/out
+test.go
