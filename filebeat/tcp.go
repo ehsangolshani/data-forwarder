@@ -7,6 +7,10 @@ import (
 	"time"
 )
 
+const (
+	newLineByteValue byte = 10
+)
+
 type TCPForwarder struct {
 	ch            chan int
 	mux           *sync.Mutex
@@ -29,7 +33,10 @@ func NewTCPForwarder(address string, reconnectWait time.Duration, maxReconnect i
 }
 
 // output: number of written bytes, error, reconnectOk
-func (t *TCPForwarder) Send(data []byte) (int, error, bool) {
+func (t *TCPForwarder) Send(data []byte, addNewLine bool) (int, error, bool) {
+	if addNewLine {
+		data = append(data, newLineByteValue)
+	}
 	n, err := t.Conn.Write(data)
 	if err != nil {
 		if len(t.ch) > 0 {
