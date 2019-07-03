@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	newLineByteValue byte = 10
+	newLineByteValue byte = '\n'
 )
 
 type TCPForwarder struct {
