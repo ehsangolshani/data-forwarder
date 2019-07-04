@@ -2,8 +2,8 @@ package main
 
 import (
 	"bufio"
-	"data-forwarder/filebeat"
 	"fmt"
+	"github.com/ehsangolshani/data-forwarder/filebeat"
 	"github.com/spf13/cobra"
 	"log"
 	"os"
