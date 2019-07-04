@@ -54,7 +54,7 @@ func main() {
 					log.Println(err)
 				}
 				if !reconnectOk {
-					log.Fatalln("failed to reconnect, stopping application")
+					log.Fatalln("stopping application")
 				}
 				if verbose {
 					_, err = os.Stdout.Write(data)
