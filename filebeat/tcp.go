@@ -30,6 +30,14 @@ func NewTCPForwarder(address string, reconnectWait time.Duration, maxReconnect i
 
 // output: number of written bytes, error, reconnectOk
 func (t *TCPForwarder) Send(data []byte) (int, error, bool) {
+	//there is a small problem here, if remote host close the connection unexpectedly an unexpected situation happens
+	//client is not aware of connection closure because it's state is old yet, so first write with be successful and client won't return any err
+	// after that state of tcp client updates and know it know that connection is closed, then next call to Write will return err
+	// our Approach is to ignore this situation
+	// additional links:
+	// https://stackoverflow.com/questions/15067286/golang-tcpconn-setwritedeadline-doesnt-seem-to-work-as-expected
+	// https://grokbase.com/t/gg/golang-nuts/14car3mfh9/go-nuts-best-way-to-retry-failed-writes-write-to-a-disconnected-tcpconn
+	// https://stackoverflow.com/questions/51317968/write-on-a-closed-net-conn-but-returned-nil-error
 	n, err := t.Conn.Write(data)
 	if err != nil {
 		if len(t.ch) > 0 {
