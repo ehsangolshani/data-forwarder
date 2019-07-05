@@ -13,8 +13,17 @@ import (
 const newLineDelimiter byte = '\n'
 
 func main() {
-	var filebeatCmd = &cobra.Command{
+
+	rootCmd := &cobra.Command{}
+	filebeatCmd := &cobra.Command{
+		Use:   "filebeat",
+		Short: "forwards data to filebeat",
+		Long:  "a simple way to forward data to filebeat different inputs such as tcp, udp ... ",
 		Run: func(cmd *cobra.Command, args []string) {
+			method, err := cmd.Flags().GetString("method")
+			if err != nil {
+				log.Fatal(err)
+			}
 			address, err := cmd.Flags().GetString("address")
 			if err != nil {
 				log.Fatal(err)
@@ -38,43 +47,55 @@ func main() {
 				log.Fatal(err)
 			}
 
-			filebeatTCPForwarder, err := filebeat.NewTCPForwarder(address, reconnectWait, maxReconnect)
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			scanner := bufio.NewScanner(os.Stdin) //default scanner is ScanLines
-			for scanner.Scan() {
-				data := scanner.Bytes()
-				if addNewLine {
-					data = append(data, newLineDelimiter)
-				}
-				_, err, reconnectOk := filebeatTCPForwarder.Send(data)
+			switch method {
+			case "tcp":
+				filebeatTCPForwarder, err := filebeat.NewTCPForwarder(address, reconnectWait, maxReconnect)
 				if err != nil {
-					log.Println(err)
+					log.Fatal(err)
 				}
-				if !reconnectOk {
-					log.Fatalln("stopping application")
-				}
-				if verbose {
-					_, err = os.Stdout.Write(data)
+
+				scanner := bufio.NewScanner(os.Stdin) //default scanner is ScanLines
+				for scanner.Scan() {
+					data := scanner.Bytes()
+					if addNewLine {
+						data = append(data, newLineDelimiter)
+					}
+					_, err, reconnectOk := filebeatTCPForwarder.Send(data)
 					if err != nil {
 						log.Println(err)
 					}
+					if !reconnectOk {
+						log.Fatalln("stopping application")
+					}
+					if verbose {
+						_, err = os.Stdout.Write(data)
+						if err != nil {
+							log.Println(err)
+						}
+					}
 				}
+				if err := scanner.Err(); err != nil {
+					log.Fatalln(err)
+				}
+
+			default:
+				log.Fatal("this method is not supported")
 			}
-			if err := scanner.Err(); err != nil {
-				log.Fatalln(err)
-			}
+
 		},
+		Args: cobra.NoArgs,
 	}
+
+	filebeatCmd.Flags().StringP("method", "m", "tcp", "url and port of filebeat tcp listener")
 	filebeatCmd.Flags().StringP("address", "a", "127.0.0.1:8080", "url and port of filebeat tcp listener")
-	filebeatCmd.Flags().IntP("maxReconnect", "m", 100, "maximum number to try reconnecting in case of connection close")
+	filebeatCmd.Flags().IntP("maxReconnect", "r", 100, "maximum number to try reconnecting in case of connection close")
 	filebeatCmd.Flags().DurationP("reconnectWait", "w", 1000*time.Millisecond, "number of milliseconds to wait between reconnect attempts")
 	filebeatCmd.Flags().BoolP("verbose", "v", false, "print out each transmitted part, default is false")
-	filebeatCmd.Flags().BoolP("addNewLine", "n", true, "add new line delimiter ('\n'), default is true")
+	filebeatCmd.Flags().BoolP("addNewLine", "n", true, "add new line delimiter, default is true")
 
-	err := filebeatCmd.Execute()
+	rootCmd.AddCommand(filebeatCmd)
+
+	err := rootCmd.Execute()
 	if err != nil {
 		fmt.Println(err)
 	}
