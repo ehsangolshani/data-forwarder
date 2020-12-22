@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"time"
+	_ "go.uber.org/automaxprocs"
 )
 
 const newLineDelimiter byte = '\n'
