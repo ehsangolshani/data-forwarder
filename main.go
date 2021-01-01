@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"github.com/ehsangolshani/data-forwarder/filebeat"
 	"github.com/spf13/cobra"
+	_ "go.uber.org/automaxprocs"
 	"log"
 	"os"
 	"time"
-	_ "go.uber.org/automaxprocs"
 )
 
 const newLineDelimiter byte = '\n'
