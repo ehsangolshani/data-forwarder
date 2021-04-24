@@ -48,6 +48,11 @@ func main() {
 				log.Fatal(err)
 			}
 
+			bufferMaxSize, err := cmd.Flags().GetInt("bufferMaxSize")
+			if err != nil {
+				log.Fatal(err)
+			}
+
 			switch method {
 			case "tcp":
 				filebeatTCPForwarder, err := filebeat.NewTCPForwarder(address, reconnectWait, maxReconnect)
@@ -56,6 +61,8 @@ func main() {
 				}
 
 				scanner := bufio.NewScanner(os.Stdin) //default scanner is ScanLines
+				buffer := make([]byte, 0, bufferMaxSize)
+				scanner.Buffer(buffer, bufferMaxSize)
 				for scanner.Scan() {
 					data := scanner.Bytes()
 					if addNewLine {
@@ -76,7 +83,13 @@ func main() {
 					}
 				}
 				if err := scanner.Err(); err != nil {
-					log.Fatalln(err)
+					if scanner.Err() != bufio.ErrTooLong {
+						log.Fatalln(err)
+					}
+
+					// In the case of ErrTooLong Error, the forwarder
+					// Shouldn't Stop, it may cause Container crash loop
+					log.Println(err)
 				}
 
 			default:
@@ -93,6 +106,7 @@ func main() {
 	filebeatCmd.Flags().DurationP("reconnectWait", "w", 1000*time.Millisecond, "number of milliseconds to wait between reconnect attempts")
 	filebeatCmd.Flags().BoolP("verbose", "v", false, "print out each transmitted part, default is false")
 	filebeatCmd.Flags().BoolP("addNewLine", "n", true, "add new line delimiter, default is true")
+	filebeatCmd.Flags().IntP("bufferMaxSize", "b", 64 * 1024, "maximum scanner buffer size")
 
 	rootCmd.AddCommand(filebeatCmd)
 
